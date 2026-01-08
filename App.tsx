@@ -2297,6 +2297,18 @@ const Player = ({
       }
   };
 
+  // Seek forward/backward by seconds
+  const handleSeek = (seconds: number) => {
+    if (audioRef.current) {
+      const newTime = Math.max(0, Math.min(audioRef.current.duration || 0, audioRef.current.currentTime + seconds));
+      audioRef.current.currentTime = newTime;
+      setCurrentTimeDisplay(newTime);
+      if (audioRef.current.duration > 0) {
+        setProgress((newTime / audioRef.current.duration) * 100);
+      }
+    }
+  };
+
   // Handle audio time updates
   const handleAudioTimeUpdate = () => {
     if (audioRef.current && audioRef.current.src === currentAudioUrlRef.current) {
@@ -2537,19 +2549,27 @@ const Player = ({
                   </button>
                   
                   <div className="flex items-center gap-6">
-                    <button className="text-slate-900 dark:text-white hover:text-brand-500 dark:hover:text-brand-400 transition-colors active:scale-90">
+                    <button
+                        onClick={() => handleSeek(-10)}
+                        className="text-slate-900 dark:text-white hover:text-brand-500 dark:hover:text-brand-400 transition-colors active:scale-90 relative"
+                    >
                         <RotateCcw size={26} strokeWidth={1.5} fill="currentColor" fillOpacity={0.1} />
+                        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold">10</span>
                     </button>
-                    
-                    <button 
+
+                    <button
                         onClick={onTogglePlay}
                         className="w-16 h-16 bg-slate-900 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center hover:scale-105 active:scale-90 transition-all duration-200 shadow-xl"
                     >
                         {state.isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
                     </button>
-                    
-                    <button className="text-slate-900 dark:text-white hover:text-brand-500 dark:hover:text-brand-400 transition-colors active:scale-90">
+
+                    <button
+                        onClick={() => handleSeek(10)}
+                        className="text-slate-900 dark:text-white hover:text-brand-500 dark:hover:text-brand-400 transition-colors active:scale-90 relative"
+                    >
                         <RotateCw size={26} strokeWidth={1.5} fill="currentColor" fillOpacity={0.1} />
+                        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold">10</span>
                     </button>
                   </div>
                   
