@@ -567,7 +567,8 @@ const HomeView = ({ onPlay, courses }: { onPlay: (item: MediaItem) => void; cour
                 author: course.instructor,
                 coverUrl: course.coverUrl,
                 type: 'podcast',
-                duration: course.totalDuration
+                duration: course.totalDuration,
+                audioUrl: course.episodes[0]?.audioUrl
               };
               return (
                 <MediaCard key={course.id} item={mediaItem} onClick={() => onPlay(mediaItem)} isLarge />
@@ -580,7 +581,22 @@ const HomeView = ({ onPlay, courses }: { onPlay: (item: MediaItem) => void; cour
           <SectionHeader title="Rutas de Aprendizaje" />
           <div className="grid grid-cols-2 gap-4">
             {courses.slice(0, 4).map((course) => (
-                <div key={course.id} className="glass-card p-3 rounded-2xl flex flex-col gap-2 cursor-pointer active:scale-95 transition-transform hover:shadow-lg">
+                <div
+                    key={course.id}
+                    className="glass-card p-3 rounded-2xl flex flex-col gap-2 cursor-pointer active:scale-95 transition-transform hover:shadow-lg"
+                    onClick={() => {
+                        const mediaItem: MediaItem = {
+                            id: course.id,
+                            title: course.title,
+                            author: course.instructor,
+                            coverUrl: course.coverUrl,
+                            type: 'podcast',
+                            duration: course.totalDuration,
+                            audioUrl: course.episodes[0]?.audioUrl
+                        };
+                        onPlay(mediaItem);
+                    }}
+                >
                     <div className="aspect-square rounded-xl overflow-hidden relative">
                         <img src={course.coverUrl} className="w-full h-full object-cover" alt="" />
                         <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white">
