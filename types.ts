@@ -1,5 +1,13 @@
 export type MediaType = 'podcast' | 'audiobook' | 'video' | 'pdf';
 
+export interface AudiobookChapter {
+  id: string;
+  title: string;
+  duration: string | null;
+  audioUrl: string | null;
+  orderIndex: number;
+}
+
 export interface MediaItem {
   id: string;
   title: string;
@@ -14,6 +22,8 @@ export interface MediaItem {
   courseTitle?: string;
   // Audio/video URL for playback
   audioUrl?: string;
+  // For audiobooks - chapters
+  chapters?: AudiobookChapter[];
 }
 
 export interface Episode {

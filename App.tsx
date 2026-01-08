@@ -85,7 +85,14 @@ const transformAudiobookToMediaItem = (ab: AudiobookWithChapters): MediaItem => 
   author: ab.author,
   coverUrl: ab.cover_url || '',
   type: 'audiobook' as MediaType,
-  duration: ab.total_duration || ''
+  duration: ab.total_duration || '',
+  chapters: ab.chapters?.map(ch => ({
+    id: ch.id,
+    title: ch.title,
+    duration: ch.duration,
+    audioUrl: ch.audio_url,
+    orderIndex: ch.order_index
+  })).sort((a, b) => a.orderIndex - b.orderIndex)
 });
 
 const transformResourceToMediaItem = (r: Resource): MediaItem => ({
@@ -229,13 +236,7 @@ const CourseCard: React.FC<{ course: Course; onPlayEpisode: (episode: Episode, c
 
 const AudiobookCard: React.FC<{ item: MediaItem; onPlay: () => void }> = ({ item, onPlay }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    // Mock chapters
-    const chapters = [
-        { title: 'Prólogo', duration: '12:00' },
-        { title: 'Parte 1: Fundamentos', duration: '45:30' },
-        { title: 'Parte 2: Metodología', duration: '55:15' },
-        { title: 'Parte 3: Casos de Estudio', duration: '38:45' }
-    ];
+    const chapters = item.chapters || [];
 
     return (
         <div className={`glass-panel rounded-2xl overflow-hidden transition-all duration-300 ${isExpanded ? 'bg-amber-50/50 dark:bg-white/5 border-amber-500/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
@@ -259,6 +260,11 @@ const AudiobookCard: React.FC<{ item: MediaItem; onPlay: () => void }> = ({ item
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
                             Audiobook
                         </span>
+                        {chapters.length > 0 && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium text-slate-500 dark:text-white/40">
+                                {chapters.length} capítulos
+                            </span>
+                        )}
                     </div>
                     <h3 className="font-bold text-base leading-tight mb-1 text-slate-900 dark:text-white pr-6 font-display">{item.title}</h3>
                     <p className="text-xs text-slate-500 dark:text-white/50">{item.author} • {item.duration}</p>
@@ -275,9 +281,9 @@ const AudiobookCard: React.FC<{ item: MediaItem; onPlay: () => void }> = ({ item
                     <div className="flex items-center justify-between mb-2">
                          <span className="text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase tracking-widest pl-1">Tabla de Contenidos</span>
                     </div>
-                    {chapters.map((chap, idx) => (
+                    {chapters.length > 0 ? chapters.map((chap) => (
                         <div
-                            key={idx}
+                            key={chap.id}
                             onClick={(e) => { e.stopPropagation(); onPlay(); }}
                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-amber-50 dark:hover:bg-white/10 active:scale-[0.99] transition-all cursor-pointer group"
                         >
@@ -286,10 +292,14 @@ const AudiobookCard: React.FC<{ item: MediaItem; onPlay: () => void }> = ({ item
                             </div>
                             <div className="flex-1">
                                 <h4 className="text-sm font-medium text-slate-700 dark:text-white/90 leading-tight mb-0.5">{chap.title}</h4>
-                                <span className="text-[10px] text-slate-400 dark:text-white/40 font-mono">{chap.duration}</span>
+                                {chap.duration && <span className="text-[10px] text-slate-400 dark:text-white/40 font-mono">{chap.duration}</span>}
                             </div>
                         </div>
-                    ))}
+                    )) : (
+                        <div className="text-center py-4 text-sm text-slate-400 dark:text-white/40">
+                            Sin capítulos disponibles
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -2200,9 +2210,12 @@ const Player = ({
   const [currentTimeDisplay, setCurrentTimeDisplay] = useState(0);
   const [durationDisplay, setDurationDisplay] = useState(0);
   const [isAudioReady, setIsAudioReady] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   // Audio element ref for real playback
   const audioRef = useRef<HTMLAudioElement>(null);
+  // Track current audio URL to prevent race conditions on rapid track switching
+  const currentAudioUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     setIsLiked(state.item?.isFavorite || false);
@@ -2229,7 +2242,10 @@ const Player = ({
   // Load new audio when item changes
   useEffect(() => {
     if (audioRef.current && state.item?.audioUrl) {
+      // Update ref to track current audio - prevents race conditions
+      currentAudioUrlRef.current = state.item.audioUrl;
       setIsAudioReady(false);  // Mark as not ready until onCanPlay fires
+      setAudioError(null);     // Clear any previous errors
       audioRef.current.src = state.item.audioUrl;
       audioRef.current.load();
       setProgress(0);
@@ -2267,7 +2283,7 @@ const Player = ({
 
   // Handle audio time updates
   const handleAudioTimeUpdate = () => {
-    if (audioRef.current) {
+    if (audioRef.current && audioRef.current.src === currentAudioUrlRef.current) {
       const current = audioRef.current.currentTime;
       const duration = audioRef.current.duration || 0;
       setCurrentTimeDisplay(current);
@@ -2281,6 +2297,8 @@ const Player = ({
 
   // Handle audio ended
   const handleAudioEnded = () => {
+    // Only handle if this is still the current track
+    if (audioRef.current?.src !== currentAudioUrlRef.current) return;
     setProgress(0);
     setCurrentTimeDisplay(0);
     onTogglePlay(); // Stop playing
@@ -2306,16 +2324,41 @@ const Player = ({
           src={state.item.audioUrl}
           onTimeUpdate={handleAudioTimeUpdate}
           onLoadedMetadata={() => {
-            if (audioRef.current) {
+            if (audioRef.current && audioRef.current.src === currentAudioUrlRef.current) {
               setDurationDisplay(audioRef.current.duration);
             }
           }}
+          onLoadStart={() => {
+            setAudioError(null); // Clear error when starting to load new track
+          }}
           onCanPlay={() => {
+            // Only process if this is still the current track
+            if (audioRef.current?.src !== currentAudioUrlRef.current) return;
             setIsAudioReady(true);
+            setAudioError(null); // Clear any previous error
             // Auto-play if state indicates it should be playing
             if (state.isPlaying && audioRef.current) {
               audioRef.current.play().catch(err => console.error('Audio play error:', err));
             }
+          }}
+          onError={(e) => {
+            const audio = e.currentTarget;
+            // Ignore errors from previous tracks (race condition)
+            if (audio.src !== currentAudioUrlRef.current) return;
+            // Ignore abort errors when switching tracks (code 1)
+            const errorCode = audio.error?.code || 0;
+            if (errorCode === 1) return; // MEDIA_ERR_ABORTED - normal when switching
+
+            const errorMessages: Record<number, string> = {
+              2: 'Error de red al cargar audio',
+              3: 'Error al decodificar audio',
+              4: 'Formato de audio no soportado'
+            };
+            const message = errorMessages[errorCode] || 'Error al reproducir audio';
+            console.error('Audio error:', audio.error);
+            setAudioError(message);
+            setIsAudioReady(false);
+            onPause(); // Stop playing state
           }}
           onEnded={handleAudioEnded}
           preload="auto"
@@ -2325,7 +2368,7 @@ const Player = ({
 
       {/* Full Screen Player */}
       {state.isExpanded ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-white animate-slide-up h-dvh w-screen">
+        <div className="fixed inset-0 z-[55] flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-white animate-slide-up h-dvh w-screen">
           {/* Background Effects */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <img 
@@ -2460,8 +2503,8 @@ const Player = ({
                         })}
                     </div>
                     <div className="flex justify-between mt-2 text-xs font-medium text-slate-400 dark:text-white/40 font-mono tracking-wider">
-                        <span>08:15</span>
-                        <span>{state.item.duration || '12:00'}</span>
+                        <span>{formatTime(currentTimeDisplay)}</span>
+                        <span>{state.item.duration || formatTime(durationDisplay)}</span>
                     </div>
                </div>
 
@@ -2505,7 +2548,7 @@ const Player = ({
         /* Mini Player */
         <div
           onClick={() => onExpand(true)}
-          className="fixed bottom-[calc(80px+env(safe-area-inset-bottom,20px))] left-4 right-4 h-16 glass-card rounded-2xl flex items-center justify-between px-2 pr-4 z-40 cursor-pointer shadow-xl animate-slide-up bg-white/90 dark:bg-[#101010]/80 border-t border-slate-200 dark:border-white/10"
+          className="fixed bottom-[calc(80px+env(safe-area-inset-bottom,0px))] left-4 right-4 h-16 glass-card rounded-2xl flex items-center justify-between px-2 pr-4 z-[45] cursor-pointer shadow-xl animate-slide-up bg-white/90 dark:bg-[#101010]/80 border-t border-slate-200 dark:border-white/10"
         >
         <div className="flex items-center gap-3 overflow-hidden">
           <div className={`w-12 h-12 rounded-xl overflow-hidden relative ${state.isPlaying ? 'animate-spin-slow' : ''}`}>
@@ -2812,6 +2855,7 @@ export default function App() {
   const [userAudiobooks, setUserAudiobooks] = useState<MediaItem[]>([]);
   const [userResources, setUserResources] = useState<MediaItem[]>([]);
   const [contentLoading, setContentLoading] = useState(true);
+  const [contentError, setContentError] = useState<string | null>(null);
 
   // Onboarding modals state
   const [showCareerModal, setShowCareerModal] = useState(false);
@@ -2920,33 +2964,36 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load content from Supabase when authenticated
+  // Load content from Supabase - extracted for retry functionality
+  const loadUserContent = async () => {
+    if (!isAuthenticated) {
+      setContentLoading(false);
+      return;
+    }
+
+    try {
+      setContentLoading(true);
+      setContentError(null); // Clear previous errors
+      const [coursesData, audiobooksData, resourcesData] = await Promise.all([
+        coursesService.getAll(),
+        audiobooksService.getAll(),
+        resourcesService.getAll()
+      ]);
+
+      // Transform to UI format
+      setUserCourses((coursesData || []).map(transformCourseToUIFormat));
+      setUserAudiobooks((audiobooksData || []).map(transformAudiobookToMediaItem));
+      setUserResources((resourcesData || []).map(transformResourceToMediaItem));
+    } catch (err) {
+      console.error('Error loading content:', err);
+      setContentError('Error al cargar contenido. Verifica tu conexión e intenta de nuevo.');
+    } finally {
+      setContentLoading(false);
+    }
+  };
+
+  // Load content when authenticated
   useEffect(() => {
-    const loadUserContent = async () => {
-      if (!isAuthenticated) {
-        setContentLoading(false);
-        return;
-      }
-
-      try {
-        setContentLoading(true);
-        const [coursesData, audiobooksData, resourcesData] = await Promise.all([
-          coursesService.getAll(),
-          audiobooksService.getAll(),
-          resourcesService.getAll()
-        ]);
-
-        // Transform to UI format
-        setUserCourses((coursesData || []).map(transformCourseToUIFormat));
-        setUserAudiobooks((audiobooksData || []).map(transformAudiobookToMediaItem));
-        setUserResources((resourcesData || []).map(transformResourceToMediaItem));
-      } catch (err) {
-        console.error('Error loading content:', err);
-      } finally {
-        setContentLoading(false);
-      }
-    };
-
     loadUserContent();
   }, [isAuthenticated]);
 
@@ -3147,10 +3194,32 @@ export default function App() {
 
             {/* Views */}
             <div className="min-h-[50vh]">
-            {view === 'home' && <HomeView onPlay={handlePlay} courses={userCourses} />}
-            {view === 'podcasts' && <EngineeringCoursesView onPlayEpisode={handlePlayEpisode} courses={userCourses} />}
-            {view === 'audiobooks' && <AudiobooksView items={userAudiobooks} onPlay={handlePlay} />}
-            {view === 'resources' && <ResourcesView onPlay={handlePlay} resources={userResources} />}
+            {/* Loading and Error States for Content Views */}
+            {['home', 'podcasts', 'audiobooks', 'resources'].includes(view) && contentLoading && (
+              <div className="flex flex-col items-center justify-center py-16 animate-pulse">
+                <div className="w-12 h-12 border-3 border-brand-500 border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-slate-500 dark:text-white/50 text-sm">Cargando contenido...</p>
+              </div>
+            )}
+            {['home', 'podcasts', 'audiobooks', 'resources'].includes(view) && contentError && !contentLoading && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-500/10 flex items-center justify-center">
+                  <AlertCircle className="text-red-500 dark:text-red-400" size={32} />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-700 dark:text-white/70 mb-2">Error al cargar</h3>
+                <p className="text-sm text-slate-500 dark:text-white/50 mb-4">{contentError}</p>
+                <button
+                  onClick={loadUserContent}
+                  className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium text-sm transition-colors"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
+            {!contentLoading && !contentError && view === 'home' && <HomeView onPlay={handlePlay} courses={userCourses} />}
+            {!contentLoading && !contentError && view === 'podcasts' && <EngineeringCoursesView onPlayEpisode={handlePlayEpisode} courses={userCourses} />}
+            {!contentLoading && !contentError && view === 'audiobooks' && <AudiobooksView items={userAudiobooks} onPlay={handlePlay} />}
+            {!contentLoading && !contentError && view === 'resources' && <ResourcesView onPlay={handlePlay} resources={userResources} />}
             {view === 'library' && <LibraryView />}
             {view === 'profile' && <ProfileView user={user} onEditProfile={() => setView('edit-profile')} onLogout={() => setIsAuthenticated(false)} isAdmin={isAdmin} onAdminPanel={() => setView('admin')} />}
             {view === 'edit-profile' && <EditProfileView user={user} onSave={(newData) => { setUser(newData); setView('profile'); }} onCancel={() => setView('profile')} />}
