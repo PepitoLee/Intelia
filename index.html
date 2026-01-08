@@ -71,15 +71,20 @@
         color: #ffffff;
       }
       
-      /* Safe Area Utilities */
+      /* Safe Area Utilities for iOS/Android PWA */
       .pt-safe {
-        padding-top: env(safe-area-inset-top, 20px);
+        padding-top: env(safe-area-inset-top, 0px);
       }
       .pb-safe {
-        padding-bottom: env(safe-area-inset-bottom, 20px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
       }
       .pb-safe-nav {
-        padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+      }
+      /* Bottom nav extends background to screen edge */
+      .nav-bottom-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-bottom: constant(safe-area-inset-bottom); /* iOS 11.0-11.2 */
       }
       .h-dvh {
         height: 100vh; /* Fallback */

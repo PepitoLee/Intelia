@@ -3212,10 +3212,7 @@ export default function App() {
       />
 
       {/* Bottom Navigation - Fixed with safe area for all mobile devices */}
-      <nav
-        className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#050505]/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/5 z-30 transition-colors duration-500"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-      >
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-[#050505]/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/5 z-30 transition-colors duration-500 nav-bottom-safe">
         <div className="flex justify-around items-center h-[80px]">
           {navItems.map((item) => {
             const Icon = item.icon;
