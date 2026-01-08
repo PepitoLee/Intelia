@@ -363,11 +363,9 @@ const LoginScreen = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
 
                      {/* Logo & Header */}
                      <div className="flex flex-col items-center mb-8">
-                         <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30 mb-6 relative group">
-                             <div className="absolute inset-0 bg-white/20 rounded-2xl animate-pulse" />
-                             <InteliaLogo className="text-white w-10 h-10" />
+                         <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg shadow-brand-500/30 mb-6">
+                             <img src="/logo-badge.png" alt="Intelia" className="w-full h-full object-contain" />
                          </div>
-                         <h1 className="text-4xl font-bold font-display text-slate-900 dark:text-white mb-2 tracking-tight">Intelia</h1>
                          <p className="text-slate-500 dark:text-white/40 text-sm text-center">Plataforma educativa de ingeniería premium</p>
                      </div>
 
@@ -3118,12 +3116,13 @@ export default function App() {
         {/* Top Header - In scroll flow but at top */}
         <div className="px-4 pt-safe">
             <header className="flex justify-between items-center mb-6 py-4">
-            <div className="flex items-center gap-3">
-                {/* Replaced 'L' circle with Intelia Logo */}
-                <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-200 dark:border-white/10">
-                    <InteliaLogo />
-                </div>
-                <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white font-display">Intelia</span>
+            <div className="flex items-center gap-2">
+                {/* Logo horizontal de Intelia */}
+                <img
+                  src="/logo-horizontal.png"
+                  alt="Intelia"
+                  className="h-12 w-auto"
+                />
             </div>
             <div className="flex gap-3 items-center">
                 <button 

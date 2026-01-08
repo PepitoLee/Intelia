@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.svg', 'apple-touch-icon.svg'],
+          includeAssets: ['favicon.png', 'apple-touch-icon.png', 'logo-horizontal.png'],
           manifest: {
             name: 'Intelia - Educación Profesional',
             short_name: 'Intelia',
@@ -33,14 +33,14 @@ export default defineConfig(({ mode }) => {
             start_url: '/',
             icons: [
               {
-                src: 'icons/icon-192x192.svg',
+                src: 'icons/icon-192x192.png',
                 sizes: '192x192',
-                type: 'image/svg+xml'
+                type: 'image/png'
               },
               {
-                src: 'icons/icon-512x512.svg',
+                src: 'icons/icon-512x512.png',
                 sizes: '512x512',
-                type: 'image/svg+xml',
+                type: 'image/png',
                 purpose: 'any maskable'
               }
             ]
