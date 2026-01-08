@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
             short_name: 'Intelia',
             description: 'Plataforma de aprendizaje para profesionales de la industria alimentaria',
             theme_color: '#8b5cf6',
-            background_color: '#0f172a',
+            background_color: '#050505',
             display: 'standalone',
             orientation: 'portrait',
             scope: '/',
