@@ -3121,7 +3121,7 @@ export default function App() {
                 <img
                   src="/logo-horizontal.png"
                   alt="Intelia"
-                  className="h-12 w-auto"
+                  className="h-20 w-auto"
                 />
             </div>
             <div className="flex gap-3 items-center">
